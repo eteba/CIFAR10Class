@@ -1,0 +1,10 @@
+CIFAR10 images machine learning classifier written in python using PyTorch.
+
+The input file must be all of the five standard, 10000-images, binary files
+concatenated into a single one.
+
+Network layout consists in three 2D-convolutional layers followed by two fully
+connected layers.
+
+Just for educational purposes. Performance improvements and hyperparameter
+tweakings must be done; and a proper evaluation step should be implemented.
