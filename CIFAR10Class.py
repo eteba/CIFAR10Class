@@ -12,6 +12,7 @@ from torch.utils.data.dataset import random_split
 
 from myNet import Net
 from myDataset import CIFAR10Data
+#from myDataset_readFullFile import CIFAR10Data
 
 # Auxiliary plotting function
 def plot_status(image, output, real_out, conv1_out, net, fig_counter):
@@ -24,7 +25,6 @@ def plot_status(image, output, real_out, conv1_out, net, fig_counter):
     
     # net.conv1[0].weight.size(): (filt, in_ch, kernel_size, kernel_size)
     # conv1_out.size(): (batch_size, filt, 16, 16)
-#    conv1_nb_filt = net.conv1[0].weight.size()[0]
     
     # We have to re-scale weight matrixes to the [0,1] range.
     for filt in range(20):
@@ -71,7 +71,7 @@ def plot_status(image, output, real_out, conv1_out, net, fig_counter):
     plt.pause(0.001)
     plt.axis("off")
         
-    savepath = "/home/enrique/tmp/fig_{}.png".format(fig_counter)
+    savepath = "fig_{}.png".format(fig_counter)
     plt.savefig(savepath)
 
 
@@ -80,7 +80,7 @@ def plot_status(image, output, real_out, conv1_out, net, fig_counter):
 #
 
 # Open training data
-myData = CIFAR10Data("/home/enrique/tmp/data.bin")
+myData = CIFAR10Data("data/data.bin")
 
 # Split the data in training and evaluating sets
 train_dataset, eval_dataset = random_split(myData, [45000, 5000])
@@ -88,8 +88,8 @@ train_dataset, eval_dataset = random_split(myData, [45000, 5000])
 # Create a DataLoader
 # NOTE: num_workers have to be 1 to avoid errors in CIFAR10Data.__getitem__()
 #       due to parallel accesses to the same file.
-dataloader = DataLoader(train_dataset, batch_size=20, shuffle=True, num_workers=1)
-eval_dataloader = DataLoader(eval_dataset, batch_size=20, shuffle=False, num_workers=1)
+dataloader = DataLoader(train_dataset, batch_size=20, shuffle=True, num_workers=0)
+eval_dataloader = DataLoader(eval_dataset, batch_size=20, shuffle=False, num_workers=0)
 
 # Create the network
 mynet = Net()
@@ -109,7 +109,6 @@ for epoch in range(20):
         param_group['lr'] = 0.1/(1 + epoch)
     
     cummulated_loss = 0.0
-#    for i in range(len(myData)):
     for i, data_batched in enumerate(dataloader):
         # Set the model to train mode
         mynet.train()
@@ -117,7 +116,7 @@ for epoch in range(20):
         # Get the image and its label
         images_t = data_batched["image"]
         labels_t = data_batched["label"]
-                
+        
         # Input and target information is read.
         # Process input through mynet.
         optimizer.zero_grad()
@@ -134,9 +133,6 @@ for epoch in range(20):
         # the evaluation dataset.
         if i % 250 == 249:
             print("Loss is ", loss.item(), " after ", (i+1)*20, " images processed.")
-#            print("Output: ", outputs)
-#            print("Predicted: ", labels_t)
-#            print("\n")
             
             # Re-apply the first layer to a random input to
             # get the convolved images.
@@ -147,17 +143,16 @@ for epoch in range(20):
             
             # Set the model to eval mode and compute its output
             mynet.eval()
-            conv1_out = mynet.conv1(test_image)
-            net_out = mynet(test_image)
+            with torch.no_grad():
+                conv1_out = mynet.conv1(test_image)
+                net_out = mynet(test_image)
             
             plot_status(test_image, net_out, real_out, conv1_out, mynet, fig_counter)
-            for k in range(9,11):
-                print("(DEBUG)", mynet.conv1[0].weight[k,1,1,1]+mynet.conv1[0].bias[k])
             fig_counter += 1
-    
+        
     # Evaluate the cummulated loss in the evaluation set.
     print("(EVALUATION) Computing cummulated loss in the evaluation subset...")
-    
+        
     cummulated_loss_e = 0.0
     for i, data_batched in enumerate(eval_dataloader):
         mynet.eval()
@@ -168,13 +163,12 @@ for epoch in range(20):
         
         loss_e = criterion(outputs_e, labels_e)
         cummulated_loss_e += loss_e.item()
-    
+        
     print("(EPOCH) Epoch", epoch, "completed.")
     print("(EPOCH) Training cummulated loss:  ", cummulated_loss)
     print("(EPOCH) Evaluation cummulated loss:", cummulated_loss_e)
     print("\n")
+    
+    torch.save(mynet.state_dict(), "out/model/saved_model_e{}".format(epoch))
 
-
-# Finished training
-print("Finished training. Saving the model.")
-torch.save(mynet.state_dict(), "saved_model")
+print("Finished training.")
