@@ -71,7 +71,7 @@ def plot_status(image, output, real_out, conv1_out, net, fig_counter):
     plt.pause(0.001)
     plt.axis("off")
         
-    savepath = "fig_{}.png".format(fig_counter)
+    savepath = "out/images/fig_{}.png".format(fig_counter)
     plt.savefig(savepath)
 
 
@@ -169,6 +169,6 @@ for epoch in range(20):
     print("(EPOCH) Evaluation cummulated loss:", cummulated_loss_e)
     print("\n")
     
-    torch.save(mynet.state_dict(), "out/model/saved_model_e{}".format(epoch))
+    torch.save(mynet.state_dict(), "out/models/saved_model_e{}".format(epoch))
 
 print("Finished training.")
